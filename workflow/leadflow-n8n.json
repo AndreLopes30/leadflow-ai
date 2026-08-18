@@ -1,0 +1,264 @@
+{
+  "name": "LeadFlow AI - Triagem de Leads",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadflow",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e1bd7324-3be9-479d-82b4-bdcfe39fef5c",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-760, 0],
+      "webhookId": "046a9b4c-b565-42b7-bbbb-cb4cfa73ef89"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json.body ?? $json;\nconst required = ['name', 'email', 'message'];\nfor (const field of required) {\n  if (typeof input[field] !== 'string' || !input[field].trim()) {\n    throw new Error(`Campo obrigatório ausente ou inválido: ${field}`);\n  }\n}\nreturn [{\n  json: {\n    name: input.name.trim(),\n    email: input.email.trim().toLowerCase(),\n    phone: input.phone ? String(input.phone).trim() : null,\n    insurance_type: input.insurance_type ? String(input.insurance_type).trim().toLowerCase() : null,\n    message: input.message.trim()\n  }\n}];"
+      },
+      "id": "d24f59c4-112b-46be-b823-848cc493c1ce",
+      "name": "Normalize and Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-520, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/api/leads/classify",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "96ec3253-cf2b-43b9-bcc3-e6137f64caa0",
+      "name": "Classify Lead via API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-280, 0]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.priority }}",
+                    "rightValue": "HIGH",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HIGH"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.priority }}",
+                    "rightValue": "MEDIUM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "MEDIUM"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.priority }}",
+                    "rightValue": "LOW",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "LOW"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7b377004-5d56-4e54-ad80-5770ac006377",
+      "name": "Switch Priority",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [-40, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "19bc298d-5232-4ea4-9c09-74126c1b622b",
+              "name": "action",
+              "value": "Encaminhar imediatamente para atendimento comercial.",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "eef89268-6264-4bb0-8166-99bf3bd9aec0",
+      "name": "Action HIGH",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, -180]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "16c36d63-c666-4256-9300-c80046b10df5",
+              "name": "action",
+              "value": "Adicionar à fila de acompanhamento comercial.",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "96d82d0b-357f-48f1-a8a5-4bc5043c0c1a",
+      "name": "Action MEDIUM",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d5f31d9c-fd5c-4764-a5cd-2fcc96d0f745",
+              "name": "action",
+              "value": "Adicionar ao fluxo de nutrição de leads.",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "b3e91fe2-a448-4c9f-be2e-45847235287d",
+      "name": "Action LOW",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 180]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "ef119156-8536-4bd3-b194-503506242f67",
+      "name": "Respond HIGH",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [480, -180]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "a3dadc6f-daec-41e3-9e38-055655b9b1b5",
+      "name": "Respond MEDIUM",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "696f52ec-2de9-4775-b979-38bbfd274223",
+      "name": "Respond LOW",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [480, 180]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "Normalize and Validate", "type": "main", "index": 0}]]
+    },
+    "Normalize and Validate": {
+      "main": [[{"node": "Classify Lead via API", "type": "main", "index": 0}]]
+    },
+    "Classify Lead via API": {
+      "main": [[{"node": "Switch Priority", "type": "main", "index": 0}]]
+    },
+    "Switch Priority": {
+      "main": [
+        [{"node": "Action HIGH", "type": "main", "index": 0}],
+        [{"node": "Action MEDIUM", "type": "main", "index": 0}],
+        [{"node": "Action LOW", "type": "main", "index": 0}]
+      ]
+    },
+    "Action HIGH": {
+      "main": [[{"node": "Respond HIGH", "type": "main", "index": 0}]]
+    },
+    "Action MEDIUM": {
+      "main": [[{"node": "Respond MEDIUM", "type": "main", "index": 0}]]
+    },
+    "Action LOW": {
+      "main": [[{"node": "Respond LOW", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "42f1eac4-f21c-46a6-88b9-292188cd54ce",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
