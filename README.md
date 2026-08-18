@@ -6,8 +6,6 @@ O LeadFlow AI recebe um lead por webhook, normaliza os dados, aplica regras de
 qualificação, persiste o resultado e direciona automaticamente o atendimento de
 acordo com a prioridade identificada.
 
-![Fluxo LeadFlow AI](docs/leadflow-workflow.png)
-
 ## O problema
 
 Em processos comerciais, leads podem chegar por diferentes canais e exigir uma
